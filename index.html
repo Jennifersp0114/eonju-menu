@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>무한 계단 오르기 게임</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a2e;
+      font-family: 'Pretendard', sans-serif;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      width: 100%;
+      max-width: 400px;
+      height: 100vh;
+      max-height: 700px;
+      background: #16213e;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    /* 상단 UI (점수 & 시간) */
+    #ui-panel {
+      padding: 20px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    #score {
+      font-size: 48px;
+      font-weight: bold;
+      color: #e94560;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      margin: 0;
+    }
+
+    #time-bar-container {
+      width: 100%;
+      height: 14px;
+      background: #0f3460;
+      border-radius: 7px;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+
+    #time-bar {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff416c, #ff4b2b);
+      transition: width 0.1s linear;
+    }
+
+    /* 게임 스테이지 */
+    #stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 캐릭터 */
+    #player {
+      width: 40px;
+      height: 40px;
+      background: #e94560;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: all 0.08s ease-out;
+      z-index: 5;
+      box-shadow: 0 0 10px #e94560;
+    }
+
+    /* 계단 */
+    .stair {
+      width: 90px;
+      height: 20px;
+      background: #0f3460;
+      border: 2px solid #e94560;
+      border-radius: 4px;
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: transform 0.08s ease-out, bottom 0.08s ease-out;
+    }
+
+    /* 컨트롤 버튼 */
+    #controls {
+      display: flex;
+      height: 120px;
+      z-index: 10;
+    }
+
+    .btn {
+      flex: 1;
+      border: none;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      transition: active 0.1s;
+    }
+
+    #btn-left {
+      background: #0f3460;
+      border-right: 1px solid #16213e;
+    }
+
+    #btn-right {
+      background: #0f3460;
+      border-left: 1px solid #16213e;
+    }
+
+    .btn:active {
+      filter: brightness(1.3);
+    }
+
+    /* 오버레이 화면 (시작 및 게임오버) */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(22, 33, 62, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .overlay h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #e94560;
+    }
+
+    .overlay p {
+      font-size: 16px;
+      margin-bottom: 30px;
+      color: #ccc;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .start-btn {
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+    }
+
+    .start-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- UI 영역 -->
+    <div id="ui-panel">
+      <div id="score">0</div>
+      <div id="time-bar-container">
+        <div id="time-bar"></div>
+      </div>
+    </div>
+
+    <!-- 게임 필드 -->
+    <div id="stage">
+      <div id="player"></div>
+      <div id="stairs-container"></div>
+    </div>
+
+    <!-- 하단 조작 버튼 -->
+    <div id="controls">
+      <button id="btn-left" class="btn">← 왼쪽 [A]</button>
+      <button id="btn-right" class="btn">오른쪽 [D] →</button>
+    </div>
+
+    <!-- Start / Game Over 오버레이 -->
+    <div id="overlay" class="overlay">
+      <h1 id="overlay-title">계단 오르기</h1>
+      <p id="overlay-desc">방향키(←, →)나 [A], [D]키를 눌러<br>빠르게 계단을 올라가세요!</p>
+      <button id="start-btn" class="start-btn">게임 시작</button>
+    </div>
+  </div>
+
+  <script>
+    // 게임 변수
+    let score = 0;
+    let stairs = []; // 계단 방향 정보 (-1: 왼쪽, 1: 오른쪽)
+    let currentStep = 0;
+    let playerX = 0; // 현재 캐릭터 X 위치 (-1, 0, 1)
+    
+    let timer = null;
+    let timeLeft = 100;
+    const MAX_TIME = 100;
+    let isGaming = false;
+
+    // DOM 요소
+    const scoreEl = document.getElementById('score');
+    const timeBarEl = document.getElementById('time-bar');
+    const stairsContainer = document.getElementById('stairs-container');
+    const playerEl = document.getElementById('player');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayDesc = document.getElementById('overlay-desc');
+    const startBtn = document.getElementById('start-btn');
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+
+    const STAIR_GAP_X = 60; // 계단 간격 X
+    const STAIR_GAP_Y = 40; // 계단 간격 Y
+
+    // 게임 초기화 및 시작
+    function startGame() {
+      score = 0;
+      timeLeft = MAX_TIME;
+      currentStep = 0;
+      stairs = [0]; // 첫 시작 계단은 중앙(0)
+      isGaming = true;
+
+      scoreEl.textContent = score;
+      timeBarEl.style.width = '100%';
+      overlay.classList.add('hidden');
+
+      // 계단 생성 (미리 20개 생성)
+      for (let i = 0; i < 20; i++) {
+        addStair();
+      }
+
+      // 플레이어 및 계단 그리기
+      playerX = 0;
+      render();
+
+      // 타이머 시작
+      clearInterval(timer);
+      timer = setInterval(() => {
+        if (!isGaming) return;
+        
+        // 점수가 높아질수록 시간이 더 빠르게 줄어듬
+        const speed = 1.2 + Math.min(score * 0.02, 3.0);
+        timeLeft -= speed;
+        
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          gameOver("시간 초과!");
+        }
+        timeBarEl.style.width = `${timeLeft}%`;
+      }, 50);
+    }
+
+    // 다음 계단 랜덤 추가
+    function addStair() {
+      const lastX = stairs[stairs.length - 1];
+      // 50% 확률로 왼쪽(-1) 혹은 오른쪽(1)에 다음 계단 생성
+      const nextDir = Math.random() < 0.5 ? -1 : 1;
+      let nextX = lastX + nextDir;
+
+      // 너무 멀리 벗어나지 않도록 범위 제한
+      if (nextX < -2) nextX = -1;
+      if (nextX > 2) nextX = 1;
+
+      stairs.push(nextX);
+    }
+
+    // 이동 처리 (-1: 왼쪽, 1: 오른쪽)
+    function move(dir) {
+      if (!isGaming) return;
+
+      const targetStairX = stairs[currentStep + 1];
+      const expectedDir = targetStairX - stairs[currentStep];
+
+      // 눌러야 할 방향 검증 (다음 계단 위치 기준)
+      // 첫 계단이나 같은 x위치일 경우 누른 방향으로 진행
+      let isCorrect = false;
+      if (expectedDir === 0) {
+        isCorrect = true; 
+      } else if (dir === expectedDir) {
+        isCorrect = true;
+      }
+
+      if (isCorrect) {
+        // 성공
+        score++;
+        currentStep++;
+        playerX = stairs[currentStep];
+        
+        // 시간 회복 (최대 100)
+        timeLeft = Math.min(MAX_TIME, timeLeft + 12);
+        
+        scoreEl.textContent = score;
+        addStair();
+        render();
+      } else {
+        // 실패 (잘못된 방향 입력)
+        gameOver("잘못된 방향!");
+      }
+    }
+
+    // 화면 렌더링 (캐릭터 및 계단 위치 업데이트)
+    function render() {
+      stairsContainer.innerHTML = '';
+
+      // 현재 스텝 기준으로 보이는 계단 표시
+      for (let i = currentStep; i < currentStep + 10; i++) {
+        if (i >= stairs.length) break;
+        
+        const stairEl = document.createElement('div');
+        stairEl.className = 'stair';
+        
+        const relIndex = i - currentStep;
+        const xPos = stairs[i] * STAIR_GAP_X;
+        const yPos = relIndex * STAIR_GAP_Y;
+
+        stairEl.style.transform = `translate(calc(-50% + ${xPos}px), ${-yPos}px)`;
+        stairsContainer.appendChild(stairEl);
+      }
+
+      // 캐릭터 위치 조절
+      playerEl.style.transform = `translate(calc(-50% + ${playerX * STAIR_GAP_X}px), 0px)`;
+    }
+
+    // 게임 오버
+    function gameOver(reason) {
+      isGaming = false;
+      clearInterval(timer);
+
+      overlayTitle.textContent = "GAME OVER";
+      overlayDesc.innerHTML = `${reason}<br><br>최종 점수: <strong>${score}</strong>점`;
+      startBtn.textContent = "다시 하기";
+      overlay.classList.remove('hidden');
+    }
+
+    // 키보드 이벤트
+    window.addEventListener('keydown', (e) => {
+      if (!isGaming) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          startGame();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        move(-1);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        move(1);
+      }
+    });
+
+    // 버튼 클릭 이벤트
+    btnLeft.addEventListener('click', () => move(-1));
+    btnRight.addEventListener('click', () => move(1));
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>
