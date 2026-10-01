@@ -3,388 +3,739 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>무한 계단 오르기 게임</title>
+  <title>급식 알레르기 분석 시스템</title>
+  <!-- Chart.js (그래프) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Tesseract.js (이미지 글자 인식 OCR) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <style>
+    :root {
+      --primary: #1E293B;        /* Slate 800 */
+      --primary-accent: #2563EB; /* Blue 600 */
+      --danger: #DC2626;         /* Red 600 */
+      --danger-bg: #FEF2F2;      /* Red 50 */
+      --success: #059669;        /* Emerald 600 */
+      --success-bg: #ECFDF5;     /* Emerald 50 */
+      --bg: #F8FAFC;             /* Slate 50 */
+      --card-bg: #FFFFFF;
+      --text-main: #0F172A;      /* Slate 900 */
+      --text-sub: #475569;       /* Slate 600 */
+      --border: #E2E8F0;         /* Slate 200 */
+    }
+
     * {
       box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      margin: 0;
-      padding: 0;
-      background: #1a1a2e;
-      font-family: 'Pretendard', sans-serif;
-      color: #fff;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 30px 16px;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    #game-container {
-      width: 100%;
-      max-width: 400px;
-      height: 100vh;
-      max-height: 700px;
-      background: #16213e;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      overflow: hidden;
-    }
-
-    /* 상단 UI (점수 & 시간) */
-    #ui-panel {
-      padding: 20px;
-      text-align: center;
-      z-index: 10;
-    }
-
-    #score {
-      font-size: 48px;
-      font-weight: bold;
-      color: #e94560;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-      margin: 0;
-    }
-
-    #time-bar-container {
-      width: 100%;
-      height: 14px;
-      background: #0f3460;
-      border-radius: 7px;
-      margin-top: 15px;
-      overflow: hidden;
-    }
-
-    #time-bar {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, #ff416c, #ff4b2b);
-      transition: width 0.1s linear;
-    }
-
-    /* 게임 스테이지 */
-    #stage {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* 캐릭터 */
-    #player {
-      width: 40px;
-      height: 40px;
-      background: #e94560;
-      border-radius: 50%;
-      position: absolute;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: all 0.08s ease-out;
-      z-index: 5;
-      box-shadow: 0 0 10px #e94560;
-    }
-
-    /* 계단 */
-    .stair {
-      width: 90px;
-      height: 20px;
-      background: #0f3460;
-      border: 2px solid #e94560;
-      border-radius: 4px;
-      position: absolute;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: transform 0.08s ease-out, bottom 0.08s ease-out;
-    }
-
-    /* 컨트롤 버튼 */
-    #controls {
-      display: flex;
-      height: 120px;
-      z-index: 10;
-    }
-
-    .btn {
-      flex: 1;
-      border: none;
-      font-size: 20px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-      transition: active 0.1s;
-    }
-
-    #btn-left {
-      background: #0f3460;
-      border-right: 1px solid #16213e;
-    }
-
-    #btn-right {
-      background: #0f3460;
-      border-left: 1px solid #16213e;
-    }
-
-    .btn:active {
-      filter: brightness(1.3);
-    }
-
-    /* 오버레이 화면 (시작 및 게임오버) */
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(22, 33, 62, 0.95);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 20;
-    }
-
-    .overlay h1 {
-      font-size: 32px;
-      margin-bottom: 10px;
-      color: #e94560;
-    }
-
-    .overlay p {
-      font-size: 16px;
-      margin-bottom: 30px;
-      color: #ccc;
-      text-align: center;
+      min-height: 100vh;
       line-height: 1.5;
     }
 
+    .container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* 1. 시작 화면 */
+    .intro-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 48px 32px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .intro-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary-accent);
+      background: #EFF6FF;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .intro-card h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.8px;
+      word-break: keep-all;
+    }
+
+    .intro-card p {
+      font-size: 1rem;
+      color: var(--text-sub);
+      max-width: 500px;
+      word-break: keep-all;
+      line-height: 1.6;
+    }
+
     .start-btn {
-      padding: 15px 40px;
-      font-size: 20px;
-      font-weight: bold;
-      background: #e94560;
+      margin-top: 12px;
+      background: var(--primary-accent);
       color: white;
       border: none;
-      border-radius: 30px;
+      padding: 14px 36px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
 
     .start-btn:hover {
-      transform: scale(1.05);
+      background: #1D4ED8;
+      transform: translateY(-1px);
     }
 
-    .hidden {
-      display: none !important;
+    /* 2. 메인 분석 화면 */
+    .main-app {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    header h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 0.875rem;
+      color: var(--text-sub);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .step-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary-accent);
+      background: #EFF6FF;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* 알레르기 선택 그리드 */
+    .allergy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+      gap: 8px;
+    }
+
+    .allergy-item input[type="checkbox"] {
+      display: none;
+    }
+
+    .allergy-item label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 4px;
+      background: #F1F5F9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .allergy-item input[type="checkbox"]:checked + label {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    /* 입력 모드 탭 (사진/텍스트 전환) */
+    .tab-menu {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .tab-btn {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .tab-btn.active {
+      background: #EFF6FF;
+      color: var(--primary-accent);
+    }
+
+    /* 사진 파일 업로드 드롭존 */
+    .upload-box {
+      border: 2px dashed #CBD5E1;
+      border-radius: 10px;
+      padding: 24px 16px;
+      text-align: center;
+      background: #F8FAFC;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .upload-box:hover {
+      border-color: var(--primary-accent);
+    }
+
+    .upload-box p {
+      font-size: 0.875rem;
+      color: var(--text-sub);
+      margin-top: 6px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .img-preview {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* OCR 처리 로딩바 */
+    .loading-box {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #EFF6FF;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--primary-accent);
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* 텍스트 입력창 */
+    textarea {
+      width: 100%;
+      height: 130px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: var(--text-main);
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: var(--primary-accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .analyze-btn {
+      width: 100%;
+      margin-top: 14px;
+      background: var(--primary-accent);
+      color: white;
+      border: none;
+      padding: 13px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .analyze-btn:hover {
+      background: #1D4ED8;
+    }
+
+    /* 결과 리포트 */
+    .result-container {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .summary-card {
+      background: var(--danger-bg);
+      border: 1px solid #FCA5A5;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .summary-card.safe {
+      background: var(--success-bg);
+      border-color: #6EE7B7;
+    }
+
+    .summary-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--danger);
+      letter-spacing: 0.5px;
+    }
+
+    .summary-card.safe .summary-label {
+      color: var(--success);
+    }
+
+    .summary-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 220px;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .day-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .day-item {
+      background: #FFFFFF;
+      border-radius: 8px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+    }
+
+    .day-item.danger-day {
+      border-left: 4px solid var(--danger);
+      background: #FAFAFA;
+    }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .day-date {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-main);
+    }
+
+    .danger-badge {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid #FCA5A5;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .menu-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .menu-tag {
+      background: #F1F5F9;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .menu-tag.warning {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid #FECACA;
+      font-weight: 600;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
 
-  <div id="game-container">
-    <!-- UI 영역 -->
-    <div id="ui-panel">
-      <div id="score">0</div>
-      <div id="time-bar-container">
-        <div id="time-bar"></div>
+  <div class="container">
+    
+    <!-- 1. 시작 화면 -->
+    <div class="intro-card" id="introScreen">
+      <span class="intro-badge">ALLERGY ANALYSIS SYSTEM</span>
+      <h1>급식 알레르기 분석 시스템</h1>
+      <p>학교 급식표 가정통신문 사진을 찍어 올리거나 텍스트를 입력하면, 알레르기 유발 성분과 한 달 위험 일정을 분석해 드립니다.</p>
+      <button class="start-btn" onclick="startApp()">분석 시작하기</button>
+    </div>
+
+    <!-- 2. 메인 분석 앱 화면 -->
+    <div class="main-app" id="mainApp">
+      
+      <header>
+        <h2>급식 알레르기 분석 시스템</h2>
+        <p>알레르기 보유 성분을 체크하고 급식표 사진 또는 텍스트를 등록해 주세요.</p>
+      </header>
+
+      <!-- Step 1. 알레르기 선택 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">알레르기 보유 성분 선택</span>
+          <span class="step-badge">STEP 01</span>
+        </div>
+        <div class="allergy-grid" id="allergyBox"></div>
       </div>
+
+      <!-- Step 2. 식단표 첨부 (사진 또는 텍스트) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">월간 급식표 첨부 및 입력</span>
+          <span class="step-badge">STEP 02</span>
+        </div>
+
+        <div class="tab-menu">
+          <button class="tab-btn active" onclick="switchTab('image')">📷 사진 첨부 (가정통신문)</button>
+          <button class="tab-btn" onclick="switchTab('text')">📝 텍스트 직접 입력</button>
+        </div>
+
+        <!-- 이미지 업로드 영역 -->
+        <div id="imageTabSection">
+          <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <span style="font-size: 1.8rem;">🖼️</span>
+            <p><b>급식표 사진 또는 가정통신문 이미지 클릭해서 첨부</b></p>
+            <p style="font-size: 0.75rem; color: #94A3B8;">(JPG, PNG 파일 지원)</p>
+            <input type="file" id="fileInput" accept="image/*" onchange="handleImageUpload(event)">
+          </div>
+          <img id="imgPreview" class="img-preview" alt="식단표 미리보기">
+          <div class="loading-box" id="loadingBox">🔍 이미지에서 글자를 인식하는 중입니다... (잠시만 기다려주세요)</div>
+        </div>
+
+        <!-- 텍스트 입력 영역 -->
+        <div id="textTabSection" style="display: none;">
+          <textarea id="mealInput" placeholder="이미지 글자 인식 결과가 여기에 표시되거나, 식단 텍스트를 직접 입력할 수 있습니다.&#10;예시) 10월 1일: 쌀밥, 제육볶음(돼지고기, 대두), 계란말이(계란)"></textarea>
+        </div>
+
+        <button class="analyze-btn" onclick="analyzeMenu()">급식 알레르기 분석 실행</button>
+      </div>
+
+      <!-- 분석 결과 리포트 -->
+      <div class="result-container" id="resultArea">
+        
+        <div class="summary-card" id="summaryCard">
+          <div class="summary-label">최다 위험 성분 포함일</div>
+          <div class="summary-value" id="worstDayText">분석 중...</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">월간 위험 메뉴 빈도 분석</span>
+            <span class="step-badge">REPORT</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">일자별 급식 성분 분석 상세</span>
+          </div>
+          <div class="day-list" id="dayList"></div>
+        </div>
+
+      </div>
+
     </div>
 
-    <!-- 게임 필드 -->
-    <div id="stage">
-      <div id="player"></div>
-      <div id="stairs-container"></div>
-    </div>
-
-    <!-- 하단 조작 버튼 -->
-    <div id="controls">
-      <button id="btn-left" class="btn">← 왼쪽 [A]</button>
-      <button id="btn-right" class="btn">오른쪽 [D] →</button>
-    </div>
-
-    <!-- Start / Game Over 오버레이 -->
-    <div id="overlay" class="overlay">
-      <h1 id="overlay-title">계단 오르기</h1>
-      <p id="overlay-desc">방향키(←, →)나 [A], [D]키를 눌러<br>빠르게 계단을 올라가세요!</p>
-      <button id="start-btn" class="start-btn">게임 시작</button>
-    </div>
   </div>
 
   <script>
-    // 게임 변수
-    let score = 0;
-    let stairs = []; // 계단 방향 정보 (-1: 왼쪽, 1: 오른쪽)
-    let currentStep = 0;
-    let playerX = 0; // 현재 캐릭터 X 위치 (-1, 0, 1)
-    
-    let timer = null;
-    let timeLeft = 100;
-    const MAX_TIME = 100;
-    let isGaming = false;
+    const ALLERGIES = [
+      "계란", "우유", "밀가루", "대두", "돼지고기", 
+      "닭고기", "쇠고기", "새우", "오징어", "조개류", "땅콩", "토마토"
+    ];
 
-    // DOM 요소
-    const scoreEl = document.getElementById('score');
-    const timeBarEl = document.getElementById('time-bar');
-    const stairsContainer = document.getElementById('stairs-container');
-    const playerEl = document.getElementById('player');
-    const overlay = document.getElementById('overlay');
-    const overlayTitle = document.getElementById('overlay-title');
-    const overlayDesc = document.getElementById('overlay-desc');
-    const startBtn = document.getElementById('start-btn');
-    const btnLeft = document.getElementById('btn-left');
-    const btnRight = document.getElementById('btn-right');
+    let chartInstance = null;
 
-    const STAIR_GAP_X = 60; // 계단 간격 X
-    const STAIR_GAP_Y = 40; // 계단 간격 Y
-
-    // 게임 초기화 및 시작
-    function startGame() {
-      score = 0;
-      timeLeft = MAX_TIME;
-      currentStep = 0;
-      stairs = [0]; // 첫 시작 계단은 중앙(0)
-      isGaming = true;
-
-      scoreEl.textContent = score;
-      timeBarEl.style.width = '100%';
-      overlay.classList.add('hidden');
-
-      // 계단 생성 (미리 20개 생성)
-      for (let i = 0; i < 20; i++) {
-        addStair();
-      }
-
-      // 플레이어 및 계단 그리기
-      playerX = 0;
-      render();
-
-      // 타이머 시작
-      clearInterval(timer);
-      timer = setInterval(() => {
-        if (!isGaming) return;
-        
-        // 점수가 높아질수록 시간이 더 빠르게 줄어듬
-        const speed = 1.2 + Math.min(score * 0.02, 3.0);
-        timeLeft -= speed;
-        
-        if (timeLeft <= 0) {
-          timeLeft = 0;
-          gameOver("시간 초과!");
-        }
-        timeBarEl.style.width = `${timeLeft}%`;
-      }, 50);
+    function startApp() {
+      document.getElementById('introScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'flex';
     }
 
-    // 다음 계단 랜덤 추가
-    function addStair() {
-      const lastX = stairs[stairs.length - 1];
-      // 50% 확률로 왼쪽(-1) 혹은 오른쪽(1)에 다음 계단 생성
-      const nextDir = Math.random() < 0.5 ? -1 : 1;
-      let nextX = lastX + nextDir;
+    window.onload = () => {
+      const box = document.getElementById('allergyBox');
+      ALLERGIES.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'allergy-item';
+        div.innerHTML = `
+          <input type="checkbox" id="alg_${idx}" value="${item}">
+          <label for="alg_${idx}">${item}</label>
+        `;
+        box.appendChild(div);
+      });
+    };
 
-      // 너무 멀리 벗어나지 않도록 범위 제한
-      if (nextX < -2) nextX = -1;
-      if (nextX > 2) nextX = 1;
+    // 탭 전환 (사진 / 텍스트)
+    function switchTab(mode) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const imgSection = document.getElementById('imageTabSection');
+      const textSection = document.getElementById('textTabSection');
 
-      stairs.push(nextX);
-    }
-
-    // 이동 처리 (-1: 왼쪽, 1: 오른쪽)
-    function move(dir) {
-      if (!isGaming) return;
-
-      const targetStairX = stairs[currentStep + 1];
-      const expectedDir = targetStairX - stairs[currentStep];
-
-      // 눌러야 할 방향 검증 (다음 계단 위치 기준)
-      // 첫 계단이나 같은 x위치일 경우 누른 방향으로 진행
-      let isCorrect = false;
-      if (expectedDir === 0) {
-        isCorrect = true; 
-      } else if (dir === expectedDir) {
-        isCorrect = true;
-      }
-
-      if (isCorrect) {
-        // 성공
-        score++;
-        currentStep++;
-        playerX = stairs[currentStep];
-        
-        // 시간 회복 (최대 100)
-        timeLeft = Math.min(MAX_TIME, timeLeft + 12);
-        
-        scoreEl.textContent = score;
-        addStair();
-        render();
+      if (mode === 'image') {
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+        imgSection.style.display = 'block';
+        textSection.style.display = 'none';
       } else {
-        // 실패 (잘못된 방향 입력)
-        gameOver("잘못된 방향!");
+        tabs[1].classList.add('active');
+        tabs[0].classList.remove('active');
+        imgSection.style.display = 'none';
+        textSection.style.display = 'block';
       }
     }
 
-    // 화면 렌더링 (캐릭터 및 계단 위치 업데이트)
-    function render() {
-      stairsContainer.innerHTML = '';
+    // OCR 사진 글자 인식 처리 (Tesseract.js)
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-      // 현재 스텝 기준으로 보이는 계단 표시
-      for (let i = currentStep; i < currentStep + 10; i++) {
-        if (i >= stairs.length) break;
-        
-        const stairEl = document.createElement('div');
-        stairEl.className = 'stair';
-        
-        const relIndex = i - currentStep;
-        const xPos = stairs[i] * STAIR_GAP_X;
-        const yPos = relIndex * STAIR_GAP_Y;
+      const preview = document.getElementById('imgPreview');
+      const loadingBox = document.getElementById('loadingBox');
+      const mealInput = document.getElementById('mealInput');
 
-        stairEl.style.transform = `translate(calc(-50% + ${xPos}px), ${-yPos}px)`;
-        stairsContainer.appendChild(stairEl);
-      }
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+      loadingBox.style.display = 'block';
 
-      // 캐릭터 위치 조절
-      playerEl.style.transform = `translate(calc(-50% + ${playerX * STAIR_GAP_X}px), 0px)`;
+      // Tesseract OCR 실행 (한글 + 영어)
+      Tesseract.recognize(
+        file,
+        'kor+eng',
+        { logger: m => console.log(m) }
+      ).then(({ data: { text } }) => {
+        loadingBox.style.display = 'none';
+        mealInput.value = text; // 인식된 글자를 텍스트 상자에 집어넣음
+        alert("사진 속 글자를 인식했습니다! [텍스트 직접 입력] 탭에서 수정하거나 분석을 진행하세요.");
+      }).catch(err => {
+        loadingBox.style.display = 'none';
+        alert("사진 글자 인식 중 오류가 발생했습니다. 직접 텍스트를 입력해 주세요.");
+      });
     }
 
-    // 게임 오버
-    function gameOver(reason) {
-      isGaming = false;
-      clearInterval(timer);
+    // 식단 분석 처리
+    function analyzeMenu() {
+      const checkedAllergies = Array.from(document.querySelectorAll('#allergyBox input:checked'))
+                                   .map(cb => cb.value);
 
-      overlayTitle.textContent = "GAME OVER";
-      overlayDesc.innerHTML = `${reason}<br><br>최종 점수: <strong>${score}</strong>점`;
-      startBtn.textContent = "다시 하기";
-      overlay.classList.remove('hidden');
-    }
-
-    // 키보드 이벤트
-    window.addEventListener('keydown', (e) => {
-      if (!isGaming) {
-        if (e.code === 'Space' || e.code === 'Enter') {
-          startGame();
-        }
+      if (checkedAllergies.length === 0) {
+        alert("분석을 위해 최소 하나의 알레르기 성분을 선택해주세요.");
         return;
       }
 
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        move(-1);
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        move(1);
+      const rawText = document.getElementById('mealInput').value.trim();
+      if (!rawText) {
+        alert("급식 식단 사진을 올려서 글자를 추출하거나, 텍스트를 입력해주세요.");
+        return;
       }
-    });
 
-    // 버튼 클릭 이벤트
-    btnLeft.addEventListener('click', () => move(-1));
-    btnRight.addEventListener('click', () => move(1));
-    startBtn.addEventListener('click', startGame);
+      const lines = rawText.split('\n').filter(l => l.trim() !== '');
+      const dates = [];
+      const dangerCounts = [];
+      const results = [];
+
+      let maxDanger = 0;
+      let worstDay = "";
+
+      lines.forEach((line, index) => {
+        let dateStr = `Day ${index + 1}`;
+        let content = line;
+
+        if (line.includes(':')) {
+          const parts = line.split(':');
+          dateStr = parts[0].trim();
+          content = parts.slice(1).join(':');
+        }
+
+        const menus = content.split(/[,/\t]/).map(m => m.trim()).filter(m => m !== '');
+        let count = 0;
+        const processedMenus = [];
+
+        menus.forEach(menu => {
+          const matched = checkedAllergies.filter(alg => {
+            if (alg === "밀가루") return menu.includes("밀가루") || menu.includes("밀");
+            return menu.includes(alg);
+          });
+
+          if (matched.length > 0) {
+            count++;
+            processedMenus.push({ name: menu, isWarning: true, cause: matched });
+          } else {
+            processedMenus.push({ name: menu, isWarning: false });
+          }
+        });
+
+        dates.push(dateStr);
+        dangerCounts.push(count);
+
+        results.push({
+          date: dateStr,
+          count: count,
+          menus: processedMenus
+        });
+
+        if (count > maxDanger) {
+          maxDanger = count;
+          worstDay = dateStr;
+        }
+      });
+
+      document.getElementById('resultArea').style.display = 'flex';
+
+      const summaryCard = document.getElementById('summaryCard');
+      const worstDayText = document.getElementById('worstDayText');
+
+      if (maxDanger === 0) {
+        summaryCard.className = "summary-card safe";
+        worstDayText.innerHTML = "선택한 알레르기 유발 성분이 포함된 메뉴가 없습니다.";
+      } else {
+        summaryCard.className = "summary-card";
+        worstDayText.innerHTML = `${worstDay} (주의 필요 메뉴 ${maxDanger}개 검출)`;
+      }
+
+      drawChart(dates, dangerCounts);
+      renderList(results);
+
+      document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function drawChart(labels, data) {
+      const ctx = document.getElementById('barChart').getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '주의 메뉴 수',
+            data: data,
+            backgroundColor: data.map(val => val > 0 ? '#EF4444' : '#94A3B8'),
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 },
+              grid: { color: '#F1F5F9' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function renderList(results) {
+      const dayList = document.getElementById('dayList');
+      dayList.innerHTML = '';
+
+      results.forEach(res => {
+        const item = document.createElement('div');
+        item.className = `day-item ${res.count > 0 ? 'danger-day' : ''}`;
+
+        let menuHtml = '';
+        res.menus.forEach(m => {
+          if (m.isWarning) {
+            menuHtml += `<span class="menu-tag warning">⚠️ ${m.name}</span>`;
+          } else {
+            menuHtml += `<span class="menu-tag">${m.name}</span>`;
+          }
+        });
+
+        item.innerHTML = `
+          <div class="day-header">
+            <span class="day-date">${res.date}</span>
+            ${res.count > 0 ? `<span class="danger-badge">주의 ${res.count}</span>` : ''}
+          </div>
+          <div class="menu-tags">${menuHtml}</div>
+        `;
+
+        dayList.appendChild(item);
+      });
+    }
   </script>
 </body>
 </html>
